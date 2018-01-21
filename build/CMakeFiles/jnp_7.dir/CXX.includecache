@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/miron/JNP/jnp_7/main.cpp
+stack
+-
+string
+-
+functional
+-
+exception
+-
+cassert
+-
+map
+-
+list
+-
+iostream
+-
+
