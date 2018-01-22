@@ -1,4 +1,3 @@
-
 #include <stack>
 #include <string>
 #include <functional>
@@ -26,22 +25,11 @@ class LazyCalculator {
 private:
     std::map<char, std::function<int(Lazy, Lazy)>> defined_operators;
 public:
-
     Lazy parse(const std::string &s) const {
-        std::list<Lazy> stack_of_lazy;
-        int l = s.length();
-        for (int i = 0; i <= l; i++) {
-            char c = s[i];
-            if (i == l) {
-                if (stack_of_lazy.size() == 1) {
-                    return stack_of_lazy.front();
-                } else {
-                    throw SyntaxError();
-                }
-            }
-
+        std::stack<Lazy> stack_of_lazy;
+        for (char c : s) {
             if (c == '2' || c == '4' || c == '0') {
-                stack_of_lazy.push_back([c]() { return c - '0'; });
+                stack_of_lazy.push([c]() { return c - '0'; });
             } else {
                 auto op = defined_operators.find(c);
                 if (op == defined_operators.end()) {
@@ -50,14 +38,18 @@ public:
                 if (stack_of_lazy.size() < 2) {
                     throw SyntaxError();
                 }
-                Lazy a = *--stack_of_lazy.end();
-                stack_of_lazy.pop_back();
-                Lazy b = *--stack_of_lazy.end();
-                stack_of_lazy.pop_back();
-                stack_of_lazy.push_back([&, this, a, b, c]() { return defined_operators.find(c)->second(b, a); });
+                Lazy a = stack_of_lazy.top();
+                stack_of_lazy.pop();
+                Lazy b = stack_of_lazy.top();
+                stack_of_lazy.pop();
+                auto f = std::bind(defined_operators.at(c), b, a);
+                stack_of_lazy.push([f]() { return f(); });
             }
         }
-
+        if (stack_of_lazy.size() != 1) {
+            throw SyntaxError();
+        }
+        return stack_of_lazy.top();
     }
 
     int calculate(const std::string &s) const {
@@ -72,23 +64,24 @@ public:
         defined_operators.insert({c, fn});
     }
 
-    LazyCalculator(){
-        define('+',[](Lazy a, Lazy b){ return a()+b();});
-        define('-',[](Lazy a, Lazy b){ return a()-b();});
-        define('*',[](Lazy a, Lazy b){ return a()*b();});
-        define('/',[](Lazy a, Lazy b){ return a()/b();});
+    LazyCalculator() {
+        define('+', [](Lazy a, Lazy b) { return a() + b(); });
+        define('-', [](Lazy a, Lazy b) { return a() - b(); });
+        define('*', [](Lazy a, Lazy b) { return a() * b(); });
+        define('/', [](Lazy a, Lazy b) { return a() / b(); });
     }
 };
 
 std::function<void(void)> operator*(int n, std::function<void(void)> fn) {
     return [=]() {
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < n; i++) {
             fn();
+        }
     };
 }
 
 int manytimes(Lazy n, Lazy fn) {
-    (n() * fn)();  // Did you notice the type cast?
+    (n() * fn)();
     return 0;
 }
 
@@ -127,7 +120,7 @@ int main() {
                                         ",,42P,42P,42P,,42P,,,42P,42P42P42P42P42P42P42P"
                                         "42P,,,42P,42P,42P,,,,,,,,,,,,") == 0);
 
-    std::cout  <<buffer.length() <<"    "<< 42 * std::string("pomidor").length()<<"\n";
+    std::cout << buffer.length() << "    " << 42 * std::string("pomidor").length() << "\n";
 
     assert(buffer.length() == 42 * std::string("pomidor").length());
 
