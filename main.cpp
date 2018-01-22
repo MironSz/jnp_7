@@ -24,12 +24,18 @@ class UnknownOperator : public std::exception {
 class LazyCalculator {
 private:
     std::map<char, std::function<int(Lazy, Lazy)>> defined_operators;
+
+    static const std::function<Lazy(void)> wrapLazy(Lazy lazy){
+        return [lazy](){return lazy;};
+    }
 public:
     Lazy parse(const std::string &s) const {
-        std::stack<Lazy> stack_of_lazy;
+        std::stack<std::function<Lazy(void)>> stack_of_lazy;
         for (char c : s) {
             if (c == '2' || c == '4' || c == '0') {
-                stack_of_lazy.push([c]() { return c - '0'; });
+                Lazy l = [c](){return c-'0';};
+                auto f = wrapLazy(l);
+                stack_of_lazy.push(f);
             } else {
                 auto op = defined_operators.find(c);
                 if (op == defined_operators.end()) {
@@ -38,18 +44,18 @@ public:
                 if (stack_of_lazy.size() < 2) {
                     throw SyntaxError();
                 }
-                Lazy a = stack_of_lazy.top();
+                Lazy a = stack_of_lazy.top()();
                 stack_of_lazy.pop();
-                Lazy b = stack_of_lazy.top();
+                Lazy b = stack_of_lazy.top()();
                 stack_of_lazy.pop();
                 auto f = std::bind(defined_operators.at(c), b, a);
-                stack_of_lazy.push([f]() { return f(); });
+                stack_of_lazy.push(wrapLazy(f));
             }
         }
         if (stack_of_lazy.size() != 1) {
             throw SyntaxError();
         }
-        return stack_of_lazy.top();
+        return stack_of_lazy.top()();
     }
 
     int calculate(const std::string &s) const {
