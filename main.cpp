@@ -3,59 +3,54 @@
 #include <functional>
 #include <exception>
 #include <cassert>
-#include <map>
+#include <unordered_map>
 #include <list>
 #include <iostream>
 
 using Lazy = std::function<int(void)>;
 
 class SyntaxError : public std::exception {
-    const char *what() const noexcept { return "Ooops!\n"; }
+    const char *what() const noexcept { return "Expression has uncorrect syntax\n"; }
 };
 
 class OperatorAlreadyDefined : public std::exception {
-    const char *what() const noexcept { return "Ooops!\n"; }
+    const char *what() const noexcept { return "This operator is already defined\n"; }
 };
 
 class UnknownOperator : public std::exception {
-    const char *what() const noexcept { return "Ooops!\n"; }
+    const char *what() const noexcept { return "This operator is not defined\n"; }
 };
 
 class LazyCalculator {
 private:
-    std::map<char, std::function<int(Lazy, Lazy)>> defined_operators;
-
-    static const std::function<Lazy(void)> wrapLazy(Lazy lazy){
-        return [lazy](){return lazy;};
-    }
+    std::unordered_map<char, std::function<int(Lazy, Lazy)>> definedOperators;
 public:
     Lazy parse(const std::string &s) const {
-        std::stack<std::function<Lazy(void)>> stack_of_lazy;
+        std::stack<Lazy> stackOfLazy;
         for (char c : s) {
             if (c == '2' || c == '4' || c == '0') {
-                Lazy l = [c](){return c-'0';};
-                auto f = wrapLazy(l);
-                stack_of_lazy.push(f);
+                Lazy l = [c]() { return c - '0'; };
+                stackOfLazy.push(l);
             } else {
-                auto op = defined_operators.find(c);
-                if (op == defined_operators.end()) {
+                auto op = definedOperators.find(c);
+                if (op == definedOperators.end()) {
                     throw UnknownOperator();
                 }
-                if (stack_of_lazy.size() < 2) {
+                if (stackOfLazy.size() < 2) {
                     throw SyntaxError();
                 }
-                Lazy a = stack_of_lazy.top()();
-                stack_of_lazy.pop();
-                Lazy b = stack_of_lazy.top()();
-                stack_of_lazy.pop();
-                auto f = std::bind(defined_operators.at(c), b, a);
-                stack_of_lazy.push(wrapLazy(f));
+                Lazy a = stackOfLazy.top();
+                stackOfLazy.pop();
+                Lazy b = stackOfLazy.top();
+                stackOfLazy.pop();
+                auto f = std::bind(definedOperators.at(c), b, a);
+                stackOfLazy.push(static_cast<Lazy>(f));
             }
         }
-        if (stack_of_lazy.size() != 1) {
+        if (stackOfLazy.size() != 1) {
             throw SyntaxError();
         }
-        return stack_of_lazy.top()();
+        return stackOfLazy.top();
     }
 
     int calculate(const std::string &s) const {
@@ -63,11 +58,11 @@ public:
     }
 
     void define(char c, std::function<int(Lazy, Lazy)> fn) {
-        if (defined_operators.find(c) != defined_operators.end() || c == '2' || c == '4' || c == '0') {
+        if (definedOperators.find(c) != definedOperators.end()) {
             throw OperatorAlreadyDefined();
         }
 
-        defined_operators.insert({c, fn});
+        definedOperators.insert({c, fn});
     }
 
     LazyCalculator() {
@@ -75,6 +70,10 @@ public:
         define('-', [](Lazy a, Lazy b) { return a() - b(); });
         define('*', [](Lazy a, Lazy b) { return a() * b(); });
         define('/', [](Lazy a, Lazy b) { return a() / b(); });
+
+        define('0', [](Lazy a, Lazy b) { return a() + b(); });
+        define('2', [](Lazy a, Lazy b) { return a() + b(); });
+        define('4', [](Lazy a, Lazy b) { return a() + b(); });
     }
 };
 
@@ -126,7 +125,6 @@ int main() {
                                         ",,42P,42P,42P,,42P,,,42P,42P42P42P42P42P42P42P"
                                         "42P,,,42P,42P,42P,,,,,,,,,,,,") == 0);
 
-    std::cout << buffer.length() << "    " << 42 * std::string("pomidor").length() << "\n";
 
     assert(buffer.length() == 42 * std::string("pomidor").length());
 

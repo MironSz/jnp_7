@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/miron/CLionProjects/jnp_7.1/main.cpp" "/home/miron/CLionProjects/jnp_7.1/build/CMakeFiles/jnp_7.dir/main.cpp.o"
+  "/home/miron/JNP/jnp_7/main.cpp" "/home/miron/JNP/jnp_7/build/CMakeFiles/jnp_7.dir/main.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 
